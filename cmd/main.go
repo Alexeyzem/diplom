@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"strings"
+	"time"
 
 	"gocv.io/x/gocv"
 )
@@ -77,14 +78,13 @@ func main() {
 	fmt.Println("Start cycle")
 	fmt.Println("---------------")
 	for {
+		start := time.Now()
 		if ok := webcam.Read(&img); !ok || img.Empty() {
 			continue
 		}
 
 		// detect marker
 		corners, ids, _ := detector.DetectMarkers(img)
-		directions := make(map[string]struct{})
-
 		fmt.Printf("Detected markers: %d\n", len(ids))
 
 		if len(ids) > 0 {
@@ -95,17 +95,7 @@ func main() {
 			dy := markerCenterY - imgCenterY
 
 			// Формируем направления
-			if dx < -threshold {
-				directions[right] = struct{}{}
-			} else if dx > threshold {
-				directions[left] = struct{}{}
-			}
-
-			if dy < -threshold {
-				directions[down] = struct{}{}
-			} else if dy > threshold {
-				directions[up] = struct{}{}
-			}
+			directions := createDirection(dx, dy)
 
 			//img center
 			gocv.Circle(&img, image.Pt(int(imgCenterX), int(imgCenterY)), pointRadius, centerColor, pointRadius)
@@ -149,6 +139,7 @@ func main() {
 		if window.WaitKey(1) >= 0 {
 			break
 		}
+		fmt.Println("TIME:", time.Now().Sub(start))
 	}
 
 	fmt.Println("---------------")
@@ -182,4 +173,22 @@ func getCenterImg(img gocv.Mat) (x float32, y float32) {
 	y = float32(imgHeight) / 2
 
 	return
+}
+
+func createDirection(dx, dy float32) map[string]struct{} {
+	directions := make(map[string]struct{})
+
+	if dx < -threshold {
+		directions[right] = struct{}{}
+	} else if dx > threshold {
+		directions[left] = struct{}{}
+	}
+
+	if dy < -threshold {
+		directions[down] = struct{}{}
+	} else if dy > threshold {
+		directions[up] = struct{}{}
+	}
+
+	return directions
 }
